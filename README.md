@@ -10,5 +10,3 @@ Compiling the project with the given `compile.sh` script requires:
  ## Usage
  If you wish to incorporate this into your project add it as a git submodule and then use `add_subdirectory` in CMake to add it. Afterwards you may include the main header (`bu_glw.hpp`) into your project. *Do not* forget to include it only *after* including your OpenGL provider library or else the library will not compile due to the OpenGL functions no being declared.
  
- ## Example
- For example usage see my [OpenGL template](https://github.com/Kravantokh/OpenGL_template) repository (If you see this message it may or may not be a valid example, but I plan on making it one).
