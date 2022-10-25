@@ -7,7 +7,11 @@
  * 
  * Project worked on by:
  * 2022 - present: Thomas Benoe */
+#ifndef BU_GLW_HEADER
+#define BU_GLW_HEADER
 
+#include <stdlib.h>
+#include "GL/gl.h"
 class VBO{
 	GLuint m_ID;
 	GLuint m_draw_mode;
@@ -37,7 +41,7 @@ public:
 };
 
 struct VertexAttrib{
-	uint num_fields;
+	unsigned int num_fields;
 	GLenum field_type;
 	size_t field_size;
 	GLboolean normalized;
@@ -47,8 +51,8 @@ class VAO{
 
 	GLuint m_ID;
 	VertexAttrib* m_attributes;
-	uint m_num_attributes;
-	uint m_num_allocated_attributes;
+	unsigned int m_num_attributes;
+	unsigned int m_num_allocated_attributes;
 	GLsizei m_stride;
 public:
 
@@ -63,3 +67,5 @@ public:
 	void bind_attributes(); /* Push the attributes to the gpu and free them on the cpu-side. */	
 	void bind_attributes_no_discard();	/*Push the attributes to the gpu but also keep them around cpu-side. */
 };
+
+#endif

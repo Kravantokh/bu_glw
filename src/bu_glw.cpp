@@ -5,6 +5,9 @@
  * Project worked on by:
  * 2022 - present: Thomas Benoe */
 
+#include "bu_glw.hpp"
+#include "GL/gl.h"
+
 /******************************** VBO *************************************/
 VBO::VBO() : 
 	m_ID{666}, /* An evil default number. It should be replaced either way, but if it isn't it should at least cause a nice crash and be visible in the debugger. */
