@@ -11,6 +11,7 @@
 #define BU_GLW_HEADER
 
 #include <stdlib.h>
+#include "GL/gl3w.h"
 #include "GL/gl.h"
 class VBO{
 	GLuint m_ID;

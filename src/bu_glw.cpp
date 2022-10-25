@@ -6,7 +6,6 @@
  * 2022 - present: Thomas Benoe */
 
 #include "bu_glw.hpp"
-#include "GL/gl.h"
 
 /******************************** VBO *************************************/
 VBO::VBO() : 
