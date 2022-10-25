@@ -36,7 +36,7 @@ include_directories(${PROJECT_BINARY_DIR}/lib/gl3w/include)
 
 add_library(bu_glw src/bu_glw.cpp)
 
-add_subdirectory(${CMAKE_SOURCE_DIR}/lib/gl3w)
+add_subdirectory(${PROJECT_SOURCE_DIR}/lib/gl3w)
 
 target_link_libraries(bu_glw gl3w)
 
