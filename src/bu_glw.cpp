@@ -7,6 +7,9 @@
 
 #include "bu_glw.hpp"
 
+/************************** Shaders *************************/
+
+
 /******************************** VBO *************************************/
 VBO::VBO() : 
 	m_ID{666}, /* An evil default number. It should be replaced either way, but if it isn't it should at least cause a nice crash and be visible in the debugger. */
@@ -39,22 +42,22 @@ void VBO::partial_data(GLintptr index, float* data, GLuint length){
 	glBufferSubData(GL_ARRAY_BUFFER, index, length*sizeof(float), data);
 }
 
-void VBO::bind(){
+void VBO::bind() const{
 	glBindBuffer(GL_ARRAY_BUFFER, m_ID);
 }
 
-void VBO::unbind(){
+void VBO::unbind() const{
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void VBO::map(void (*f)(void*), GLenum mode){
+void VBO::map(void (*f)(void*), GLenum mode) const{
 	glBindBuffer(GL_ARRAY_BUFFER, m_ID);
 	void* ptr = glMapBuffer(GL_ARRAY_BUFFER, mode);
 	f(ptr);
 	glUnmapBuffer(GL_ARRAY_BUFFER);
 }
 
-void VBO::map(void (*f)(void*)){
+void VBO::map(void (*f)(void*)) const {
 	map(f, GL_READ_WRITE);
 }
 
@@ -68,6 +71,9 @@ VAO::VAO() :
 	m_stride{0}
 {
 	glGenVertexArrays(1, &m_ID);
+#if BU_GLW_CONSTRUCTORS_BIND==1 
+	glBindVertexArray(m_ID);
+#endif
 }
 
 VAO::~VAO(){
@@ -139,4 +145,52 @@ void VAO::bind_attributes(){
 	bind_attributes_no_discard();
 	free(m_attributes);
 	m_attributes = nullptr;
+}
+
+/************************* EBO ******************************/
+
+EBO::EBO() : 
+	m_ID{666}, /* An evil default number. It should be replaced either way, but if it isn't it should at least cause a nice crash and be visible in the debugger. */
+	m_length{0},
+	m_draw_mode{GL_STATIC_DRAW}
+{
+	glGenBuffers(1, &m_ID);
+}
+
+EBO::EBO(const unsigned int* array, GLuint length, GLenum draw_mode) : 
+	m_length{length},
+	m_draw_mode{draw_mode}
+{
+	glGenBuffers(1, &m_ID);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ID);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, length*sizeof(unsigned int), array, draw_mode);
+}
+
+EBO::~EBO(){
+	glDeleteBuffers(1, &m_ID);
+}
+
+void EBO::data(unsigned int* data, GLuint length){
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ID);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, length*sizeof(unsigned int), data, m_draw_mode);
+}
+
+void EBO::partial_data(GLintptr index, unsigned int* data, GLuint length){
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ID);
+	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, index, length*sizeof(unsigned int), data);
+}
+
+void EBO::bind(){
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ID);
+}
+
+void EBO::unbind(){
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+void EBO::map(void (*f)(void*), GLenum mode){
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ID);
+	void* ptr = glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, mode);
+	f(ptr);
+	glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
 }
