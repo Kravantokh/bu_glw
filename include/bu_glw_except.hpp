@@ -28,4 +28,5 @@ public:
 		return what_message.c_str();
 	}
 };
+
 #endif
