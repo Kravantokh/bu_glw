@@ -9,6 +9,81 @@
 
 /************************** Shaders *************************/
 
+Shader::Shader(const char* path, GLenum type) : m_shader_type{type}{
+	m_code = bu_glw_read_file_into_string(path);
+};
+Shader::~Shader(){
+	free(m_code);
+	glDeleteShader(m_ID);
+}
+
+void Shader::compile(){
+	m_ID = glCreateShader(m_shader_type);
+	glShaderSource(m_ID, 1, &m_code, NULL);
+	free(m_code);
+	m_code = NULL;
+	glCompileShader(m_ID);
+	int  success;
+	char infoLog[512];
+	glGetShaderiv(m_ID, GL_COMPILE_STATUS, &success);
+	if(!success)
+	{
+		glGetShaderInfoLog(m_ID, 512, NULL, infoLog);
+		fprintf(stderr, "Error during shader compilation: %s\n", infoLog);
+		throw( GLShaderCompilationFailed() );
+	}
+}
+
+
+char* bu_glw_read_file_into_string(const char* path){
+	FILE* file = fopen(path, "r");
+	
+	if(file == NULL){
+		throw(BuGlwBadFilePath());
+	}
+
+	char* string = (char*)calloc( 512, sizeof(char) );
+	unsigned int allocated_mem = 512;
+	unsigned int index = 0;
+
+	
+	char read = (char)fgetc(file);
+	while( read != EOF){
+
+		if(index < allocated_mem - 1){
+			string[index] = read;
+			index++;
+		}else{
+			char* new_buff = (char*)realloc(string, 2*allocated_mem);	
+			allocated_mem *= 2;
+			if(new_buff != nullptr){
+				string = new_buff;
+			}else{
+				throw(std::bad_alloc());
+			}
+			string[allocated_mem - 1] = '\0';
+			string[index] = read;
+			index++;
+		}
+
+		read = (char)fgetc(file);
+	}
+
+#if BU_GLW_OPTIMIZE_MEMORY==1
+	/* Resize to the minimum necessary size*/
+	char* new_buff = (char*)realloc(string, 2*allocated_mem);	
+	if(new_buff != nullptr){
+		string = new_buff;
+	}else{
+		throw(std::bad_alloc());
+	}
+	string[index + 1] = '\0';
+#endif
+
+fclose(file);
+
+return string;
+}
 
 /******************************** VBO *************************************/
 VBO::VBO() : 
@@ -17,6 +92,9 @@ VBO::VBO() :
 	m_draw_mode{GL_STATIC_DRAW}
 {
 	glGenBuffers(1, &m_ID);
+#if BU_GLW_CONSTRUCTORS_BIND==1 
+	glBindBuffer(GL_ARRAY_BUFFER, m_ID);
+#endif
 }
 
 VBO::VBO(const float* array, GLuint length, GLenum draw_mode) : 
@@ -155,6 +233,9 @@ EBO::EBO() :
 	m_draw_mode{GL_STATIC_DRAW}
 {
 	glGenBuffers(1, &m_ID);
+#if BU_GLW_CONSTRUCTORS_BIND==1 
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ID);
+#endif
 }
 
 EBO::EBO(const unsigned int* array, GLuint length, GLenum draw_mode) : 

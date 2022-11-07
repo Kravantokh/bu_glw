@@ -11,6 +11,7 @@
 #define BU_GLW_HEADER
 
 #include <stdlib.h>
+#include <stdio.h>
 #include "GL/gl3w.h"
 #include "GL/gl.h"
 #include "bu_glw_except.hpp"
@@ -21,14 +22,73 @@
 #define BU_GLW_CONSTRUCTORS_BIND 1
 #endif 
 
+/* Should some little memory optimization run at the cost of very little cpu? */
+#ifndef BU_GLW_OPTIMIZE_MEMORY
+#define BU_GLW_OPTIMIZE_MEMORY 1
+#endif
+
+/*
+ * Some #defines use these variables to decide how they should behave.
+ * */
+#ifndef OPENGL_VERSION_MAJOR
+#define OPENGL_VERSION_MAJOR 4
+#endif
+#ifndef OPENGL_VERSION_MINOR
+#define OPENGL_VERSION_MINOR 3
+#endif
+
+
 /************************** Shaders *************************/
 
-class VertexShader{
+char* bu_glw_read_file_into_string(const char* path);
+
+class Shader{
+protected:
+public:
+	GLchar* m_code;
+	const char* m_name;	
+	GLuint m_ID;
+	const GLenum m_shader_type;	
+public:
+
+	Shader(const char* path, GLenum type);
+	~Shader();
+
+	void compile(); /* May throw exceptions if any errors occur. */
+	
+	/* Attention! If you use OpenGL version below 4.1 these will run glUseProgram on the vertex shader.
+	 * In OpenGL versions 4.1 and above these will us glProgramUniform* to set the variables and thus won't bind any programs. */
+	void setUniform(const char* name, GLfloat v0);
+	void setUsetUniform(const char* name, GLfloat v0, GLfloat v1);
+	void setUsetUniform(const char* name, GLfloat v0, GLfloat v1, GLfloat v2);
+	void setUsetUniform(const char* name, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
+
+
+	void setUsetUniform(const char* name, GLint v0);
+	void setUsetUniform(const char* name, GLint v0, GLint v1);
+	void setUsetUniform(const char* name, GLint v0, GLint v1, GLint v2);
+	void setUsetUniform(const char* name, GLint v0, GLint v1, GLint v2, GLint v3);
+
+	void setUsetUniform(const char* name, GLuint v0);
+	void setUsetUniform(const char* name, GLuint v0, GLuint v1);
+	void setUsetUniform(const char* name, GLuint v0, GLuint v1, GLuint v2);
+	void setUsetUniform(const char* name, GLuint v0, GLuint v1, GLuint v2, GLuint v3);
+
+#if OPENGL_VERSION_MAJOR > 4 && OPENGL_VERSION_MINOR > 1
+	
+#endif
 
 };
 
-class FragmentShader{
+class VertexShader : public Shader{
+public:
+	VertexShader(const char* path) : Shader(path, GL_VERTEX_SHADER){};
+};
 
+
+class FragmentShader : public Shader{
+public:
+	FragmentShader(const char* path) : Shader(path, GL_FRAGMENT_SHADER){};
 };
 
 class ShaderProgram{
