@@ -40,59 +40,84 @@
 
 /************************** Shaders *************************/
 
+/* Forward declarations*/
+class Shader;
+class VertexShader;
+class FragmentShader;
+class ShaderProgram;
+
 char* bu_glw_read_file_into_string(const char* path);
 
 class Shader{
-protected:
 public:
 	GLchar* m_code;
 	const char* m_name;	
 	GLuint m_ID;
-	const GLenum m_shader_type;	
-public:
+	const GLenum m_shader_type;
 
+protected:
+public:
 	Shader(const char* path, GLenum type);
+	/* Move constructor. */
+	Shader(Shader&&) = default;
 	~Shader();
 
+	/* No copy constructor. */
+	Shader(const Shader&) = delete;
+	/* No assignment operator. */
+	Shader& operator=(const Shader&) = delete;
+
+public:
 	void compile(); /* May throw exceptions if any errors occur. */
+	void attachTo(const GLuint program_id);
 	
 	/* Attention! If you use OpenGL version below 4.1 these will run glUseProgram on the vertex shader.
 	 * In OpenGL versions 4.1 and above these will us glProgramUniform* to set the variables and thus won't bind any programs. */
+
+	#if OPENGL_VERSION_MAJOR > 4 && OPENGL_VERSION_MINOR > 1	
+	#endif
+
 	void setUniform(const char* name, GLfloat v0);
-	void setUsetUniform(const char* name, GLfloat v0, GLfloat v1);
-	void setUsetUniform(const char* name, GLfloat v0, GLfloat v1, GLfloat v2);
-	void setUsetUniform(const char* name, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
+	void setUniform(const char* name, GLfloat v0, GLfloat v1);
+	void setUniform(const char* name, GLfloat v0, GLfloat v1, GLfloat v2);
+	void setUniform(const char* name, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
 
+	void setUniform(const char* name, GLint v0);
+	void setUniform(const char* name, GLint v0, GLint v1);
+	void setUniform(const char* name, GLint v0, GLint v1, GLint v2);
+	void setUniform(const char* name, GLint v0, GLint v1, GLint v2, GLint v3);
 
-	void setUsetUniform(const char* name, GLint v0);
-	void setUsetUniform(const char* name, GLint v0, GLint v1);
-	void setUsetUniform(const char* name, GLint v0, GLint v1, GLint v2);
-	void setUsetUniform(const char* name, GLint v0, GLint v1, GLint v2, GLint v3);
-
-	void setUsetUniform(const char* name, GLuint v0);
-	void setUsetUniform(const char* name, GLuint v0, GLuint v1);
-	void setUsetUniform(const char* name, GLuint v0, GLuint v1, GLuint v2);
-	void setUsetUniform(const char* name, GLuint v0, GLuint v1, GLuint v2, GLuint v3);
-
-#if OPENGL_VERSION_MAJOR > 4 && OPENGL_VERSION_MINOR > 1
-	
-#endif
+	void setUniform(const char* name, GLuint v0);
+	void setUniform(const char* name, GLuint v0, GLuint v1);
+	void setUniform(const char* name, GLuint v0, GLuint v1, GLuint v2);
+	void setUniform(const char* name, GLuint v0, GLuint v1, GLuint v2, GLuint v3);
 
 };
 
+
 class VertexShader : public Shader{
-public:
+	public:
 	VertexShader(const char* path) : Shader(path, GL_VERTEX_SHADER){};
+	friend ShaderProgram;
 };
 
 
 class FragmentShader : public Shader{
-public:
+	public:
 	FragmentShader(const char* path) : Shader(path, GL_FRAGMENT_SHADER){};
+	friend ShaderProgram;
 };
 
 class ShaderProgram{
-
+public:
+	FragmentShader m_fs;
+	VertexShader m_vs;
+	const GLuint m_ID;
+public:
+	ShaderProgram(VertexShader& vertex_shader, FragmentShader& fragment_shader);
+	ShaderProgram(const char* vertex_shader_path, const char* fragment_shader_path);
+	
+	void use();
 };
 
 /*************************** VBO ****************************/

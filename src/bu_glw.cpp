@@ -12,6 +12,7 @@
 Shader::Shader(const char* path, GLenum type) : m_shader_type{type}{
 	m_code = bu_glw_read_file_into_string(path);
 };
+
 Shader::~Shader(){
 	free(m_code);
 	glDeleteShader(m_ID);
@@ -24,16 +25,69 @@ void Shader::compile(){
 	m_code = NULL;
 	glCompileShader(m_ID);
 	int  success;
-	char infoLog[512];
+	char message[512];
 	glGetShaderiv(m_ID, GL_COMPILE_STATUS, &success);
 	if(!success)
 	{
-		glGetShaderInfoLog(m_ID, 512, NULL, infoLog);
-		fprintf(stderr, "Error during shader compilation: %s\n", infoLog);
+		glGetShaderInfoLog(m_ID, 512, NULL, message);
+		fprintf(stderr, "Error during shader compilation: %s\n", message);
 		throw( GLShaderCompilationFailed() );
 	}
 }
 
+void Shader::attachTo(const GLuint prog){
+	glAttachShader(prog, m_ID);
+}
+
+void setUniform(const char* name, GLfloat v0, GLfloat v1);
+void setUniform(const char* name, GLfloat v0, GLfloat v1, GLfloat v2);
+void setUniform(const char* name, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
+
+
+ShaderProgram::ShaderProgram(VertexShader& vs, FragmentShader& fs) :
+	m_vs{std::move(vs)},
+	m_fs{std::move(fs)},
+	m_ID{glCreateProgram()}
+{
+	vs.attachTo(m_ID);
+	fs.attachTo(m_ID);
+	glLinkProgram(m_ID);
+	int  success;
+	char message[512];
+	glGetProgramiv(m_ID, GL_COMPILE_STATUS, &success);
+	if(!success)
+	{
+		glGetShaderInfoLog(m_ID, 512, NULL, message);
+		fprintf(stderr, "Error during shader linking: %s\n", message);
+		throw( GLShaderProgramLinkingFailed() );
+	}
+}
+
+ShaderProgram::ShaderProgram(const char* vs_path, const char* fs_path) : 
+	m_vs{vs_path},
+	m_fs{fs_path},
+	m_ID{glCreateProgram()}
+{
+	m_vs.compile();
+	m_fs.compile();
+	
+	m_vs.attachTo(m_ID);
+	m_fs.attachTo(m_ID);
+	glLinkProgram(m_ID);
+	int  success;
+	char message[512];
+	glGetProgramiv(m_ID, GL_COMPILE_STATUS, &success);
+	if(!success)
+	{
+		glGetShaderInfoLog(m_ID, 512, NULL, message);
+		fprintf(stderr, "Error during shader linking: %s\n", message);
+		throw( GLShaderProgramLinkingFailed() );
+	}
+}
+
+void ShaderProgram::use(){
+	glUseProgram(m_ID);
+}
 
 char* bu_glw_read_file_into_string(const char* path){
 	FILE* file = fopen(path, "r");

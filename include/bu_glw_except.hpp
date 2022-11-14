@@ -15,7 +15,15 @@ public:
 };
 
 class GLShaderCompilationFailed : public std::exception {
-	std::string what_message = "An OpenGL function returned null when it was not supposed to.";
+	std::string what_message = "Failed to compile a shader.";
+public:
+	const char* what() const noexcept override{
+		return what_message.c_str();
+	}
+};
+
+class GLShaderProgramLinkingFailed : public std::exception {
+	std::string what_message = "Failed to link a shader program.";
 public:
 	const char* what() const noexcept override{
 		return what_message.c_str();
