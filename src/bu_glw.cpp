@@ -6,13 +6,15 @@
  * 2022 - present: Thomas Benoe */
 
 #include "bu_glw.hpp"
+#include <string.h>
 
 /************************** Shaders *************************/
 
-Shader::Shader(const char* path, GLenum type) : m_shader_type{type}{
+Shader::Shader(const char* path, GLenum type) : 
+	m_shader_type{type}
+{
 	m_code = bu_glw_read_file_into_string(path);
 };
-
 Shader::~Shader(){
 	free(m_code);
 	glDeleteShader(m_ID);
@@ -35,6 +37,7 @@ void Shader::compile(){
 	}
 }
 
+
 void Shader::attachTo(const GLuint prog){
 	glAttachShader(prog, m_ID);
 }
@@ -47,13 +50,16 @@ void setUniform(const char* name, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3
 ShaderProgram::ShaderProgram(VertexShader& vs, FragmentShader& fs) :
 	m_vs{std::move(vs)},
 	m_fs{std::move(fs)},
+	m_uniform_list_length{0},
+	m_uniform_list_size{0},
+	m_uniforms{nullptr},
 	m_ID{glCreateProgram()}
 {
 	vs.attachTo(m_ID);
 	fs.attachTo(m_ID);
 	glLinkProgram(m_ID);
-	int  success;
-	char message[512];
+	int  success = 0;
+	char message[512] = {0};
 	glGetProgramiv(m_ID, GL_COMPILE_STATUS, &success);
 	if(!success)
 	{
@@ -66,6 +72,9 @@ ShaderProgram::ShaderProgram(VertexShader& vs, FragmentShader& fs) :
 ShaderProgram::ShaderProgram(const char* vs_path, const char* fs_path) : 
 	m_vs{vs_path},
 	m_fs{fs_path},
+	m_uniform_list_length{0},
+	m_uniform_list_size{0},
+	m_uniforms{nullptr},
 	m_ID{glCreateProgram()}
 {
 	m_vs.compile();
@@ -74,9 +83,9 @@ ShaderProgram::ShaderProgram(const char* vs_path, const char* fs_path) :
 	m_vs.attachTo(m_ID);
 	m_fs.attachTo(m_ID);
 	glLinkProgram(m_ID);
-	int  success;
-	char message[512];
-	glGetProgramiv(m_ID, GL_COMPILE_STATUS, &success);
+	int  success = 0;
+	char message[512] = {0};
+	glGetProgramiv(m_ID, GL_LINK_STATUS, &success);
 	if(!success)
 	{
 		glGetShaderInfoLog(m_ID, 512, NULL, message);
@@ -88,6 +97,141 @@ ShaderProgram::ShaderProgram(const char* vs_path, const char* fs_path) :
 void ShaderProgram::use(){
 	glUseProgram(m_ID);
 }
+
+unsigned int ShaderProgram::registerUniform(const char* name){
+	/* Most frequent case: no need to resize.*/
+	if(m_uniform_list_length < m_uniform_list_size){
+		GLint location = glGetUniformLocation(m_ID, name);
+		if(location == -1)
+			throw(new GLInexistentUniform);
+		Uniform* new_uniform = &m_uniforms[m_uniform_list_length];
+		strncpy(&new_uniform->name[0], name, BU_GLW_MAX_UNIFORM_NAME_LENGTH);
+		new_uniform->name[BU_GLW_MAX_UNIFORM_NAME_LENGTH] = '\0';
+		new_uniform->ID = location;
+		m_uniform_list_length++;
+	}else{
+		/* If not enough memory is available we shall allocate it.*/
+		if(m_uniform_list_length == m_uniform_list_size){
+			if(m_uniforms == nullptr){
+				m_uniforms = (Uniform*)calloc( 4, sizeof(Uniform) );
+				m_uniform_list_size = 4;
+				GLint location = glGetUniformLocation(m_ID, name);
+				fprintf(stderr, "Uniform location: %d", location);
+				if(location == -1)
+					throw(GLInexistentUniform());
+				Uniform* new_uniform = &m_uniforms[m_uniform_list_length];
+				strncpy( &new_uniform->name[0], name, BU_GLW_MAX_UNIFORM_NAME_LENGTH);
+				new_uniform->name[BU_GLW_MAX_UNIFORM_NAME_LENGTH] = '\0';
+				new_uniform->ID = location;
+				m_uniform_list_length++;
+				if(m_uniforms == nullptr)
+					throw(new BuGlwMemoryError);
+			}else{
+				Uniform* ptr = (Uniform*)realloc(m_uniforms, 2*m_uniform_list_size*sizeof(Uniform) );
+				if(ptr == nullptr)
+					throw(new BuGlwMemoryError);
+				else{
+					m_uniforms = ptr;
+					m_uniform_list_size *= 2;
+					m_uniform_list_length++;
+				}
+			}
+		}else{
+			/* No other case should exist. Any other state is invalid and may corrupt the program.*/
+			throw(new BuGlwRealBad);
+		}
+	}
+	return m_uniform_list_length;
+}
+void ShaderProgram::finishUniformRegistration(){
+	Uniform* ptr = (Uniform*)realloc(m_uniforms, m_uniform_list_length * sizeof(Uniform) );
+	if(ptr == nullptr)
+		throw(new BuGlwMemoryError);
+	else{
+		m_uniforms = ptr;
+		m_uniform_list_length = m_uniform_list_size;
+	}
+
+}
+
+/* A macro to save me a bunch of typing the same code*/
+#if !BU_GLW_NO_BOUNDS_CHECKING
+	#ifdef BU_GLW_LOCAL_BOUNDS_CHECK
+		#error "Why is this macro defined? It shouldn't ever be!"
+	#else 
+		#define BU_GLW_LOCAL_BOUNDS_CHECK \
+		if(ID >= m_uniform_list_length || ID < 0)\
+			throw(new BuGlwOutOfBounds);
+	#endif
+#else
+	#define BU_GLW_LOCAL_BOUNDS_CHECK 
+#endif
+
+void ShaderProgram::setUniform(unsigned int ID, GLfloat v0){
+	BU_GLW_LOCAL_BOUNDS_CHECK
+	glUniform1f(m_uniforms[ID].ID, v0);
+
+}
+void ShaderProgram::setUniform(unsigned int ID, GLfloat v0, GLfloat v1){
+	BU_GLW_LOCAL_BOUNDS_CHECK
+	glUniform2f(m_uniforms[ID].ID, v0, v1);
+
+}
+
+void ShaderProgram::setUniform(unsigned int ID, GLfloat v0, GLfloat v1, GLfloat v2){
+	BU_GLW_LOCAL_BOUNDS_CHECK
+	glUniform3f(m_uniforms[ID].ID, v0, v1, v2);
+
+}
+
+void ShaderProgram::setUniform(unsigned int ID, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3){
+	BU_GLW_LOCAL_BOUNDS_CHECK
+	glUniform4f(m_uniforms[ID].ID, v0, v1, v2, v3);
+}
+
+
+void ShaderProgram::setUniform(unsigned int ID, GLint v0){
+	BU_GLW_LOCAL_BOUNDS_CHECK
+	glUniform1i(m_uniforms[ID].ID, v0);
+}
+void ShaderProgram::setUniform(unsigned int ID, GLint v0, GLint v1){
+	BU_GLW_LOCAL_BOUNDS_CHECK
+	glUniform2i(m_uniforms[ID].ID, v0, v1);
+}
+void ShaderProgram::setUniform(unsigned int ID, GLint v0, GLint v1, GLint v2){
+	BU_GLW_LOCAL_BOUNDS_CHECK
+	glUniform3i(m_uniforms[ID].ID, v0, v1, v2);
+}
+
+void ShaderProgram::setUniform(unsigned int ID, GLint v0, GLint v1, GLint v2, GLint v3){
+	BU_GLW_LOCAL_BOUNDS_CHECK
+	glUniform4i(m_uniforms[ID].ID, v0, v1, v2, v3);
+}
+
+
+
+void ShaderProgram::setUniform(unsigned int ID, GLuint v0){
+	BU_GLW_LOCAL_BOUNDS_CHECK
+	glUniform1ui(m_uniforms[ID].ID, v0);
+}
+
+void ShaderProgram::setUniform(unsigned int ID, GLuint v0, GLuint v1){
+	BU_GLW_LOCAL_BOUNDS_CHECK
+	glUniform2ui(m_uniforms[ID].ID, v0, v1);
+}
+
+void ShaderProgram::setUniform(unsigned int ID, GLuint v0, GLuint v1, GLuint v2){
+	BU_GLW_LOCAL_BOUNDS_CHECK
+	glUniform3ui(m_uniforms[ID].ID, v0, v1, v2);
+}
+
+void ShaderProgram::setUniform(unsigned int ID, GLuint v0, GLuint v1, GLuint v2, GLuint v3){
+	BU_GLW_LOCAL_BOUNDS_CHECK
+	glUniform4ui(m_uniforms[ID].ID, v0, v1, v2, v3);
+}
+
+#undef BU_GLW_LOCAL_BOUNDS_CHECK
+
 
 char* bu_glw_read_file_into_string(const char* path){
 	FILE* file = fopen(path, "r");

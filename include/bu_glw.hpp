@@ -27,6 +27,12 @@
 #define BU_GLW_OPTIMIZE_MEMORY 1
 #endif
 
+/* Should bounds checks be done in some cases? This, though not recommended, may be defined to save some cpu cycles on those checks once you are sure your program has no out of bounds access.*/
+#ifndef BU_GLW_NO_BOUNDS_CHECKING
+#define BU_GLW_NO_BOUNDS_CHECKING 0
+#endif
+
+
 /*
  * Some #defines use these variables to decide how they should behave.
  * */
@@ -34,9 +40,12 @@
 #define OPENGL_VERSION_MAJOR 4
 #endif
 #ifndef OPENGL_VERSION_MINOR
-#define OPENGL_VERSION_MINOR 3
+#define OPENGL_VERSION_MINOR 2
 #endif
 
+#ifndef BU_GLW_MAX_UNIFORM_NAME_LENGTH
+#define BU_GLW_MAX_UNIFORM_NAME_LENGTH 32
+#endif
 
 /************************** Shaders *************************/
 
@@ -45,8 +54,14 @@ class Shader;
 class VertexShader;
 class FragmentShader;
 class ShaderProgram;
+struct Uniform;
 
 char* bu_glw_read_file_into_string(const char* path);
+
+struct Uniform{
+	char name[BU_GLW_MAX_UNIFORM_NAME_LENGTH + 1];
+	GLint ID;
+};
 
 class Shader{
 public:
@@ -54,6 +69,7 @@ public:
 	const char* m_name;	
 	GLuint m_ID;
 	const GLenum m_shader_type;
+	
 
 protected:
 public:
@@ -71,26 +87,13 @@ public:
 	void compile(); /* May throw exceptions if any errors occur. */
 	void attachTo(const GLuint program_id);
 	
+
 	/* Attention! If you use OpenGL version below 4.1 these will run glUseProgram on the vertex shader.
 	 * In OpenGL versions 4.1 and above these will us glProgramUniform* to set the variables and thus won't bind any programs. */
 
 	#if OPENGL_VERSION_MAJOR > 4 && OPENGL_VERSION_MINOR > 1	
 	#endif
 
-	void setUniform(const char* name, GLfloat v0);
-	void setUniform(const char* name, GLfloat v0, GLfloat v1);
-	void setUniform(const char* name, GLfloat v0, GLfloat v1, GLfloat v2);
-	void setUniform(const char* name, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
-
-	void setUniform(const char* name, GLint v0);
-	void setUniform(const char* name, GLint v0, GLint v1);
-	void setUniform(const char* name, GLint v0, GLint v1, GLint v2);
-	void setUniform(const char* name, GLint v0, GLint v1, GLint v2, GLint v3);
-
-	void setUniform(const char* name, GLuint v0);
-	void setUniform(const char* name, GLuint v0, GLuint v1);
-	void setUniform(const char* name, GLuint v0, GLuint v1, GLuint v2);
-	void setUniform(const char* name, GLuint v0, GLuint v1, GLuint v2, GLuint v3);
 
 };
 
@@ -113,11 +116,35 @@ public:
 	FragmentShader m_fs;
 	VertexShader m_vs;
 	const GLuint m_ID;
+
+	Uniform* m_uniforms;
+	unsigned int m_uniform_list_size;
+	unsigned int m_uniform_list_length;
 public:
 	ShaderProgram(VertexShader& vertex_shader, FragmentShader& fragment_shader);
 	ShaderProgram(const char* vertex_shader_path, const char* fragment_shader_path);
 	
 	void use();
+
+	unsigned int registerUniform(const char* name); /* Register a uniform for the current program. It will be assigned an ID automatically (this ID is the return value) and it will be looked up on the GPU. May throw if the uniform does not exist on the GPU.*/
+	void finishUniformRegistration(); /* This optimizes the used memory to the minimum and expects you to not register new uniforms. */
+
+	unsigned int findUniformID(); /* Query for the ID of a named uniform stored in this class. Beware! This uses string comparisons and is thus slow. You should not use this. You should retrieve the ID of uniforms when registering them. Attention! There is no type checking! You must ensure taht you pass the correct number and type of arguments to setUniform when setting uniforms. */
+
+	void setUniform(unsigned int ID, GLfloat v0);
+	void setUniform(unsigned int ID, GLfloat v0, GLfloat v1);
+	void setUniform(unsigned int ID, GLfloat v0, GLfloat v1, GLfloat v2);
+	void setUniform(unsigned int ID, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
+
+	void setUniform(unsigned int ID, GLint v0);
+	void setUniform(unsigned int ID, GLint v0, GLint v1);
+	void setUniform(unsigned int ID, GLint v0, GLint v1, GLint v2);
+	void setUniform(unsigned int ID, GLint v0, GLint v1, GLint v2, GLint v3);
+
+	void setUniform(unsigned int ID, GLuint v0);
+	void setUniform(unsigned int ID, GLuint v0, GLuint v1);
+	void setUniform(unsigned int ID, GLuint v0, GLuint v1, GLuint v2);
+	void setUniform(unsigned int ID, GLuint v0, GLuint v1, GLuint v2, GLuint v3);
 };
 
 /*************************** VBO ****************************/
