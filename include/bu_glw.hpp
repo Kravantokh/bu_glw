@@ -155,12 +155,11 @@ class VBO{
 	unsigned int m_length;
 public:
 	VBO();
-	VBO(const float* array, GLuint length, GLenum draw_mode);
-	VBO(const float* array, GLuint length) : VBO(array, length, GL_STATIC_DRAW){};
+	VBO(const float* array, GLuint length, GLenum draw_mode = GL_STATIC_DRAW);
 	
 	/* Convert constructor from array. */
 	template<GLuint L>
-	VBO(const float (*array)[L]) : VBO((float*)array, L){};
+	VBO(const float (*array)[L], GLenum draw_mode = GL_STATIC_DRAW) : VBO((float*)array, L, draw_mode){};
 
 	~VBO();
 	/* No copy constructor and assignment operator - We don't want multiple instances corresponding to one buffer on the GPU, because that could lead to some spaghetti code.*/
@@ -199,7 +198,7 @@ public:
 	void bind();
 	void unbind();
 	void add_attribute(VertexAttrib atr); /* Add an attribute cpu-side */ 
-	void add_attribute(uint num_fields, GLenum field_type = GL_FLOAT, size_t field_size = sizeof(unsigned int), GLboolean normalized = GL_FALSE); /* Add an attribute cpu-side */ 
+	void add_attribute(uint num_fields, GLenum field_type = GL_FLOAT, size_t field_size = sizeof(float), GLboolean normalized = GL_FALSE); /* Add an attribute cpu-side */ 
 
 	void bind_attributes(); /* Push the attributes to the gpu and free them on the cpu-side. */	
 	void bind_attributes_no_discard();	/*Push the attributes to the gpu but also keep them around cpu-side. */
