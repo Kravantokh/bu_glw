@@ -32,6 +32,9 @@
 #define BU_GLW_NO_BOUNDS_CHECKING 0
 #endif
 
+#ifndef BU_GLW_MAX_UNIFORM_NAME_LENGTH
+#define BU_GLW_MAX_UNIFORM_NAME_LENGTH 32
+#endif
 
 /*
  * Some #defines use these variables to decide how they should behave.
@@ -43,9 +46,6 @@
 #define OPENGL_VERSION_MINOR 2
 #endif
 
-#ifndef BU_GLW_MAX_UNIFORM_NAME_LENGTH
-#define BU_GLW_MAX_UNIFORM_NAME_LENGTH 32
-#endif
 
 /************************** Shaders *************************/
 

@@ -116,7 +116,6 @@ unsigned int ShaderProgram::registerUniform(const char* name){
 				m_uniforms = (Uniform*)calloc( 4, sizeof(Uniform) );
 				m_uniform_list_size = 4;
 				GLint location = glGetUniformLocation(m_ID, name);
-				fprintf(stderr, "Uniform location: %d", location);
 				if(location == -1)
 					throw(GLInexistentUniform());
 				Uniform* new_uniform = &m_uniforms[m_uniform_list_length];
