@@ -11,8 +11,12 @@
 /************************** Shaders *************************/
 
 Shader::Shader(const char* path, GLenum type) : 
+	m_code{nullptr},
 	m_shader_type{type}
 {
+	if(path==nullptr){
+		return;
+	}
 	m_code = bu_glw_read_file_into_string(path);
 };
 Shader::~Shader(){
@@ -48,6 +52,7 @@ void setUniform(const char* name, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3
 
 
 ShaderProgram::ShaderProgram(VertexShader& vs, FragmentShader& fs) :
+	m_gs{nullptr},
 	m_vs{std::move(vs)},
 	m_fs{std::move(fs)},
 	m_uniform_list_length{0},
@@ -71,6 +76,7 @@ ShaderProgram::ShaderProgram(VertexShader& vs, FragmentShader& fs) :
 
 ShaderProgram::ShaderProgram(const char* vs_path, const char* fs_path) : 
 	m_vs{vs_path},
+	m_gs{nullptr},
 	m_fs{fs_path},
 	m_uniform_list_length{0},
 	m_uniform_list_size{0},
@@ -93,6 +99,36 @@ ShaderProgram::ShaderProgram(const char* vs_path, const char* fs_path) :
 		throw( GLShaderProgramLinkingFailed() );
 	}
 }
+
+ShaderProgram::ShaderProgram(const char* vs, const char* gs, const char* fs) :
+	m_vs{vs},
+	m_gs{gs},
+	m_fs{fs},
+	m_uniform_list_length{0},
+	m_uniform_list_size{0},
+	m_uniforms{nullptr},
+	m_ID{glCreateProgram()}
+{
+	m_vs.compile();
+	m_fs.compile();
+	m_gs.compile();
+	
+	m_vs.attachTo(m_ID);
+	m_fs.attachTo(m_ID);
+	m_gs.attachTo(m_ID);
+	glLinkProgram(m_ID);
+	int  success = 0;
+	char message[512] = {0};
+	glGetProgramiv(m_ID, GL_LINK_STATUS, &success);
+	if(!success)
+	{
+		glGetShaderInfoLog(m_ID, 512, NULL, message);
+		fprintf(stderr, "Error during shader linking: %s\n", message);
+		throw( GLShaderProgramLinkingFailed() );
+	}
+}
+
+
 
 void ShaderProgram::use(){
 	glUseProgram(m_ID);

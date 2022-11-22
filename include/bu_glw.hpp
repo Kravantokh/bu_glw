@@ -66,7 +66,6 @@ struct Uniform{
 class Shader{
 public:
 	GLchar* m_code;
-	const char* m_name;	
 	GLuint m_ID;
 	const GLenum m_shader_type;
 	
@@ -111,10 +110,17 @@ class FragmentShader : public Shader{
 	friend ShaderProgram;
 };
 
+class GeomteryShader : public Shader{
+	public:
+	GeomteryShader(const char* path) : Shader(path, GL_GEOMETRY_SHADER){};
+	friend ShaderProgram;
+};
+
 class ShaderProgram{
 public:
 	FragmentShader m_fs;
 	VertexShader m_vs;
+	GeomteryShader m_gs;
 	const GLuint m_ID;
 
 	Uniform* m_uniforms;
@@ -123,6 +129,7 @@ public:
 public:
 	ShaderProgram(VertexShader& vertex_shader, FragmentShader& fragment_shader);
 	ShaderProgram(const char* vertex_shader_path, const char* fragment_shader_path);
+	ShaderProgram(const char* geometry_shader_path, const char* vertex_shader_path, const char* fragment_shader_path);
 	
 	void use();
 
