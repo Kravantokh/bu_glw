@@ -7,6 +7,14 @@
 
 #include "bu_glw.hpp"
 #include <string.h>
+#ifdef __linux__
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#else
+#include <stdio.h>
+#endif
 
 /************************** Shaders *************************/
 
@@ -269,6 +277,42 @@ void ShaderProgram::setUniform(unsigned int ID, GLuint v0, GLuint v1, GLuint v2,
 
 
 char* bu_glw_read_file_into_string(const char* path){
+#if __linux__
+/* Elegant mmap code for Linux */
+	char* string;
+	/* Check if file exists  */
+	if (access(path, R_OK) == 0) {
+		/* The file exists and can be accessed. Everything may proceed normally. */
+		struct stat file_info;
+		if( stat(path, &file_info) != 0 )
+			throw( BuGlwIOError() ); /* stat didn't work. Too bad! */	
+
+		/* Open file */
+		int fd = open(path, O_RDONLY);
+		if(fd == -1)
+			throw( BuGlwIOError() ); /* open didn't work. Too bad! */	
+
+		/* Memory map file */
+		char* mapped_file = (char*)mmap(NULL , file_info.st_size, PROT_READ, MAP_SHARED,
+                  fd, 0);
+		if( mapped_file == (void*)-1 ){
+			throw( BuGlwIOError() ); /* mmap didn't work. Catch this! */	
+		}
+		
+		string = (char*)malloc( file_info.st_size + 1 ); /* Allocate buffer */
+		if( string == NULL )
+			throw(BuGlwMemoryError());/* Not enough memory. Too bad! */
+
+		string[ file_info.st_size ] = 0; /* Null termination */
+		memcpy(string, mapped_file, file_info.st_size);
+		munmap(mapped_file, file_info.st_size);
+	} else {
+		/* File does not exist. Too bad! */
+		throw(BuGlwBadFilePath());
+	}
+
+#else
+	/* Possibly buggy code for the rest. */
 	FILE* file = fopen(path, "r");
 	
 	if(file == NULL){
@@ -314,6 +358,8 @@ char* bu_glw_read_file_into_string(const char* path){
 #endif
 
 fclose(file);
+
+#endif
 
 return string;
 }

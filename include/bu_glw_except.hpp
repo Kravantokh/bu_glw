@@ -14,6 +14,15 @@ public:
 	}
 };
 
+class BuGlwIOError: public std::exception {
+	std::string what_message = "An unrecoverable I/O error has occured. The program can not continue.";
+
+public:
+	const char* what() const noexcept override{
+		return what_message.c_str();
+	}
+};
+
 class BuGlwOutOfBounds: public std::exception {
 	std::string what_message = "Slow down! No such index exists.";
 
