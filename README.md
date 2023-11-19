@@ -1,5 +1,7 @@
 # Benoe's Utilities: OpenGL Wrappers
 
+Archived because I am no longer interested in working on this project. I left it here for later reference. 
+
 A set of unopiniated C-style C++11 abstractions for OpenGL to make its usage less verbose and easier.
 This library also include gl3w as the OpenGL function loader.
 
